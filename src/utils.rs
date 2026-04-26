@@ -199,7 +199,7 @@ impl UEFIValue {
 
         format!(
             "0x{:0width$X}",
-            usize::from_ne_bytes(bytes),
+            usize::from_le_bytes(bytes),
             width = val_size * 2
         )
     }
@@ -210,7 +210,7 @@ impl Display for UEFIValue {
         let mut bytes = [0; 8];
         bytes[0..self.0.len()].copy_from_slice(&self.0);
 
-        write!(f, "0x{:X}", usize::from_ne_bytes(bytes))
+        write!(f, "0x{:X}", usize::from_le_bytes(bytes))
     }
 }
 
