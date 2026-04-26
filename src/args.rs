@@ -77,7 +77,7 @@ pub struct ValueAddr {
 pub enum ValueOperation {
     #[default]
     Read,
-    Write(usize),
+    Write(u64),
 }
 
 #[derive(Debug, Default, Clone)]
@@ -89,7 +89,7 @@ pub struct ValueArg {
 impl ValueArg {
     pub fn validate(&self) -> Result<(), ArgsError> {
         if let ValueOperation::Write(val) = self.operation {
-            if val >= (1 << (self.addr.val_size * 8)) {
+            if self.addr.val_size < 8 && val >= (1u64 << (self.addr.val_size * 8)) {
                 Err(ArgsError::ValLargerThanSize(val, self.addr.val_size))
             } else {
                 Ok(())
@@ -165,7 +165,7 @@ impl Args {
 
 #[derive(Debug)]
 pub enum ArgsError {
-    ValLargerThanSize(usize, usize),
+    ValLargerThanSize(u64, usize),
 }
 
 impl Display for ArgsError {
@@ -350,7 +350,7 @@ fn try_next_char(iter: &mut impl Iterator<Item = char>, str: &CStr16) -> Result<
         .ok_or_else(|| ParseError::InvalidValue(str.to_string()))
 }
 
-fn parse_hex_number(num_str: &CStr16) -> Result<usize, ParseError> {
+fn parse_hex_number(num_str: &CStr16) -> Result<u64, ParseError> {
     let mut str_iter = num_str.iter().map(|&c| char::from(c));
 
     // Prefix 0x(0X)
@@ -372,14 +372,14 @@ fn parse_hex_number(num_str: &CStr16) -> Result<usize, ParseError> {
         .collect::<Option<Vec<u8>>>()
         .ok_or_else(|| ParseError::InvalidValue(num_str.to_string()))?;
     let value_len = value.len();
-    let value = value.iter().enumerate().fold(0usize, |acc, (i, &n)| {
-        acc + ((n as usize) << (4 * (value_len - i - 1)))
+    let value = value.iter().enumerate().fold(0u64, |acc, (i, &n)| {
+        acc + ((n as u64) << (4 * (value_len - i - 1)))
     });
 
     Ok(value)
 }
 
-fn parse_number(num_str: &CStr16) -> Result<usize, ParseError> {
+fn parse_number(num_str: &CStr16) -> Result<u64, ParseError> {
     let chars = num_str.iter().map(|&c| char::from(c)).collect::<Vec<_>>();
     if chars.iter().any(|c| !c.is_ascii_digit()) {
         Err(ParseError::InvalidValue(num_str.to_string()))?
@@ -387,7 +387,7 @@ fn parse_number(num_str: &CStr16) -> Result<usize, ParseError> {
 
     let value = chars
         .into_iter()
-        .fold(0usize, |acc, n| acc * 10 + (n as u8 - b'0') as usize);
+        .fold(0u64, |acc, n| acc * 10 + (n as u8 - b'0') as u64);
 
     Ok(value)
 }
@@ -449,7 +449,7 @@ pub fn parse_value_arg(arg: &CStr16) -> Result<ValueArg, ParseError> {
             .strip_suffix(')'.try_into().unwrap())
             .ok_or(ParseError::InvalidValue(var_name.to_string()))?;
 
-        var_id = Some(try_parsers!(&var_id_str, parse_number, parse_hex_number)?);
+        var_id = Some(try_parsers!(&var_id_str, parse_number, parse_hex_number)? as usize);
         var_name = arg_split.swap_remove(0);
     }
 
@@ -467,11 +467,11 @@ pub fn parse_value_arg(arg: &CStr16) -> Result<ValueArg, ParseError> {
             .strip_suffix(')'.try_into().unwrap())
             .ok_or(ParseError::InvalidValue(var_offset.to_string()))?;
 
-        val_size = try_parsers!(&val_size_str, parse_number, parse_hex_number)?;
+        val_size = try_parsers!(&val_size_str, parse_number, parse_hex_number)? as usize;
         var_offset = Cow::Owned(arg_split.swap_remove(0));
     }
 
-    let offset = try_parsers!(&var_offset, parse_hex_number, parse_number)?;
+    let offset = try_parsers!(&var_offset, parse_hex_number, parse_number)? as usize;
 
     Ok(ValueArg {
         addr:      ValueAddr {

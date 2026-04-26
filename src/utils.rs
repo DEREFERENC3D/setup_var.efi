@@ -188,8 +188,13 @@ struct UEFIVariable {
 pub struct UEFIValue(pub Vec<u8>);
 
 impl UEFIValue {
-    pub fn from_usize(value: usize, val_size: usize) -> Self {
-        let value = value & ((1 << (val_size * 8)) - 1);
+    pub fn from_u64(value: u64, val_size: usize) -> Self {
+        let mask = if val_size < 8 {
+            (1u64 << (val_size * 8)) - 1
+        } else {
+            u64::MAX
+        };
+        let value = value & mask;
         Self(value.to_le_bytes()[0..val_size].to_vec())
     }
 
@@ -199,7 +204,7 @@ impl UEFIValue {
 
         format!(
             "0x{:0width$X}",
-            usize::from_le_bytes(bytes),
+            u64::from_le_bytes(bytes),
             width = val_size * 2
         )
     }
@@ -210,7 +215,7 @@ impl Display for UEFIValue {
         let mut bytes = [0; 8];
         bytes[0..self.0.len()].copy_from_slice(&self.0);
 
-        write!(f, "0x{:X}", usize::from_le_bytes(bytes))
+        write!(f, "0x{:X}", u64::from_le_bytes(bytes))
     }
 }
 

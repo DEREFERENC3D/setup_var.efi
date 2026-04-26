@@ -106,7 +106,7 @@ fn process_arg(write_on_demand: bool, val_arg: &ValueArg) -> (Status, ArgProcess
             }
         }
         ValueOperation::Write(value) => {
-            let value = UEFIValue::from_usize(value, val_size);
+            let value = UEFIValue::from_u64(value, val_size);
 
             match utils::write_val(
                 var_name,
