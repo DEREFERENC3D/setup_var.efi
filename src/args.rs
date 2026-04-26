@@ -89,7 +89,7 @@ pub struct ValueArg {
 impl ValueArg {
     pub fn validate(&self) -> Result<(), ArgsError> {
         if let ValueOperation::Write(val) = self.operation {
-            if val > (1 << (self.addr.val_size * 8)) {
+            if val >= (1 << (self.addr.val_size * 8)) {
                 Err(ArgsError::ValLargerThanSize(val, self.addr.val_size))
             } else {
                 Ok(())
