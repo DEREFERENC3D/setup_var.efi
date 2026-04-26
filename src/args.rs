@@ -414,7 +414,7 @@ pub fn parse_value_wrapped(arg: &CStr16) -> Result<ValueOperation, ParseError> {
     Ok(parse_value(arg)?.1)
 }
 
-fn parse_value(arg: &CStr16) -> Result<(Cow<CStr16>, ValueOperation), ParseError> {
+fn parse_value(arg: &CStr16) -> Result<(Cow<'_, CStr16>, ValueOperation), ParseError> {
     if arg.contains('='.try_into().unwrap()) {
         let mut arg_split = arg.split_to_cstring('='.try_into().unwrap());
         if arg_split.len() != 2 {
